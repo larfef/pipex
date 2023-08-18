@@ -25,9 +25,10 @@ int	execute_cmd(t_data *data)
 {
 	static int	i;
 
-	if (i == 0)
+	if (i == 1)
 		data->fd_out = open(data->av[FILE2], O_WRONLY | O_CREAT, PERM);
-	if (data->fd_out == -1)
+	if (data->fd_out == -1 
+		|| dup2(data->fd_out, STDOUT) == -1)
 		return (-1);
 	data->pid = fork();
 	if (data->pid == -1)
@@ -55,6 +56,12 @@ int	set_execve(t_data *data, int cmd)
 		free(data->path);
 		data->path = "/usr/bin/";
 	}
+	data->arg = ft_split(data->av[cmd], ' ');
+	if (data->arg == NULL)
+		exit(EXIT_FAILURE);
+	data->path = ft_strjoin(data->path, data->arg[NAME]);
+	if (data->path == NULL)
+		return (-1);
 	if (cmd == CMD1)
 		data->fd_in = open(data->av[FILE1], O_RDONLY);
 	if (cmd == CMD1 && data->fd_in == -1)
@@ -62,12 +69,6 @@ int	set_execve(t_data *data, int cmd)
 		if (close(data->fd_in) == -1)
 			return (-1);
 	}
-	data->arg = ft_split(data->av[cmd], ' ');
-	if (data->arg == NULL)
-		exit(EXIT_FAILURE);
-	data->path = ft_strjoin(data->path, data->arg[NAME]);
-	if (data->path == NULL)
-		return (-1);
 	return (1);
 }
 
@@ -85,6 +86,7 @@ int	main(int ac, char **av)
 	data.av = av;
 	data.path = "/usr/bin/";
 	data.status = 0;
+	data.fd_out = 0;
 	if (set_execve(&data, CMD1) == -1
 		|| pipe(data.pipefd) == -1
 		|| close(STDIN) == -1
@@ -94,7 +96,6 @@ int	main(int ac, char **av)
 		|| close(data.pipefd[WRITE]) == -1
 		|| execute_cmd(&data) == -1
 		|| dup2(data.pipefd[READ], STDIN) == -1
-		|| dup2(data.fd_out, STDOUT) == -1
 		|| set_execve(&data, CMD2) == -1
 		|| execute_cmd(&data) == -1)
 	{
