@@ -15,8 +15,6 @@
 #define STDOUT 1
 #define READ 0
 #define WRITE 1
-#define TRUE 1
-#define FALSE 0
 #define PERM 0777
 
 typedef struct t_struct
@@ -28,7 +26,7 @@ typedef struct t_struct
 	int		fd_in;
 	int		fd_out;
 	int		status;
-	int		pipefd[2];
+	int		pipe[2];
 	pid_t	pid;
 }	t_data;
 

@@ -6,19 +6,23 @@ void	free_table(char **ptr)
 
 	i = 0;
 	while (ptr[i])
-	{
 		free(ptr[i++]);
-		i++;
-	}
 	free(ptr);
 }
 
-int	child_process(t_data *data)
+void	child_process(t_data *data)
 {
-	if (close(data->pipefd[READ]) == -1
+	//static int	i;
+
+	// if (i == 1)
+	// 	data->fd_out = open(data->av[FILE2], O_WRONLY | O_CREAT, PERM);
+	// if (i++ == 1)
+	// 	if (data->fd_out == -1 
+	// 		|| dup2(data->fd_out, STDOUT) == -1)
+	// 			return;
+	if (close(data->pipe[READ]) == -1
 		|| execve(data->path, data->arg, NULL) == -1)
-		return (-1);
-	return (1);
+		exit(EXIT_FAILURE);
 }
 
 int	execute_cmd(t_data *data)
@@ -27,22 +31,23 @@ int	execute_cmd(t_data *data)
 
 	if (i == 1)
 		data->fd_out = open(data->av[FILE2], O_WRONLY | O_CREAT, PERM);
-	if (data->fd_out == -1 
-		|| dup2(data->fd_out, STDOUT) == -1)
-		return (-1);
+	if (i == 1)
+		if (data->fd_out == -1 
+			|| dup2(data->fd_out, STDOUT) == -1)
+				return (-1);
 	data->pid = fork();
 	if (data->pid == -1)
 		return (-1);
+
 	if (data->pid != 0
-		&& (wait(&data->status) == -1
-			|| !WIFEXITED(data->status)))
+		&& wait(&data->status) == -1)
+			//|| !WIFEXITED(data->status)))
 		return (-1);
-	else if (data->pid == 0
-		&& (child_process(data) == -1))
-		return (-1);
+	else if (data->pid == 0)
+		child_process(data);	
 	if (data->pid != 0 && i++ == 1)
 	{
-		data->success = TRUE;
+		data->success = 1;
 		return (-1);
 	}
 	return (1);
@@ -65,10 +70,8 @@ int	set_execve(t_data *data, int cmd)
 	if (cmd == CMD1)
 		data->fd_in = open(data->av[FILE1], O_RDONLY);
 	if (cmd == CMD1 && data->fd_in == -1)
-	{
 		if (close(data->fd_in) == -1)
 			return (-1);
-	}
 	return (1);
 }
 
@@ -86,16 +89,18 @@ int	main(int ac, char **av)
 	data.av = av;
 	data.path = "/usr/bin/";
 	data.status = 0;
+	data.pipe[0] = -1;
+	data.pipe[1] = -1;
 	data.fd_out = 0;
 	if (set_execve(&data, CMD1) == -1
-		|| pipe(data.pipefd) == -1
 		|| close(STDIN) == -1
 		|| dup2(data.fd_in, STDIN) == -1
+		|| pipe(data.pipe) == -1
 		|| close(STDOUT) == -1
-		|| dup2(data.pipefd[WRITE], STDOUT) == -1
-		|| close(data.pipefd[WRITE]) == -1
+		|| dup2(data.pipe[WRITE], STDOUT) == -1
+		|| close(data.pipe[WRITE]) == -1
 		|| execute_cmd(&data) == -1
-		|| dup2(data.pipefd[READ], STDIN) == -1
+		|| dup2(data.pipe[READ], STDIN) == -1
 		|| set_execve(&data, CMD2) == -1
 		|| execute_cmd(&data) == -1)
 	{
