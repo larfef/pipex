@@ -1,5 +1,5 @@
 #include "pipex.h"
-
+#include <errno.h>
 // static int	set_quote(t_data *data)
 // {
 // 	char	*temp;
@@ -140,7 +140,7 @@ int	main(int ac, char **av)
 		{
 			if (WIFSIGNALED(data.status))
 				exit(WTERMSIG(data.status));
-			exit(0);
+			exit(errno);
 		}
 	}
 	if (WIFEXITED(data.status))
