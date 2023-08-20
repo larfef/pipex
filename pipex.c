@@ -1,5 +1,28 @@
 #include "pipex.h"
 
+static int	set_quote(t_data *data)
+{
+	char	*temp;
+	int		current;
+
+	current = 0;
+	while (data->arg[current]) 
+	{
+		if (ft_strlen(data->arg[current]) == 2
+			&& ft_strncmp(data->arg[current], "''", 2) == 0)
+		{
+			temp = ft_calloc(5, sizeof(char));
+			if (!data->arg[current])
+				return(-1);
+			free(data->arg[current]);
+			data->arg[current] = temp;
+			ft_strlcpy(data->arg[current], "\\'\\'", 5);
+		}
+		current++;
+	}
+	return (1);
+}
+
 void	free_table(char **ptr)
 {
 	int	i;
@@ -30,7 +53,7 @@ int	execute_cmd(t_data *data)
 	static int	i;
 
 	if (i == 1)
-		data->fd_out = open(data->av[FILE2], O_WRONLY | O_CREAT, PERM);
+		data->fd_out = open(data->av[FILE2], O_WRONLY | O_CREAT | O_TRUNC, PERM);
 	if (i == 1)
 		if (data->fd_out == -1 
 			|| dup2(data->fd_out, STDOUT) == -1)
@@ -64,6 +87,8 @@ int	set_execve(t_data *data, int cmd)
 	data->arg = ft_split(data->av[cmd], ' ');
 	if (data->arg == NULL)
 		exit(EXIT_FAILURE);
+	if (set_quote(data) == -1)
+		return (-1);
 	data->path = ft_strjoin(data->path, data->arg[NAME]);
 	if (data->path == NULL)
 		return (-1);
@@ -78,6 +103,7 @@ int	set_execve(t_data *data, int cmd)
 int	main(int ac, char **av)
 
 {
+	printf("%s\n", av[2]);
 	t_data	data;
 
 	if (ac != 5)
