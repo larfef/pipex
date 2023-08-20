@@ -22,6 +22,7 @@ typedef struct t_struct
 	char	*path;
 	char	**arg;
 	char	**av;
+	int		_exit;
 	int		success;
 	int		fd_in;
 	int		fd_out;

@@ -1,27 +1,27 @@
 #include "pipex.h"
 
-static int	set_quote(t_data *data)
-{
-	char	*temp;
-	int		current;
+// static int	set_quote(t_data *data)
+// {
+// 	char	*temp;
+// 	int		current;
 
-	current = 0;
-	while (data->arg[current]) 
-	{
-		if (ft_strlen(data->arg[current]) == 2
-			&& ft_strncmp(data->arg[current], "''", 2) == 0)
-		{
-			temp = ft_calloc(5, sizeof(char));
-			if (!data->arg[current])
-				return(-1);
-			free(data->arg[current]);
-			data->arg[current] = temp;
-			ft_strlcpy(data->arg[current], "\\'\\'", 5);
-		}
-		current++;
-	}
-	return (1);
-}
+// 	current = 0;
+// 	while (data->arg[current]) 
+// 	{
+// 		if (ft_strlen(data->arg[current]) == 2
+// 			&& ft_strncmp(data->arg[current], "''", 2) == 0)
+// 		{
+// 			temp = ft_calloc(5, sizeof(char));
+// 			if (!temp)
+// 				return(-1);
+// 			free(data->arg[current]);
+// 			data->arg[current] = temp;
+// 			ft_strlcpy(data->arg[current], "\\'\\'", 5);
+// 		}
+// 		current++;
+// 	}
+// 	return (1);
+// }
 
 void	free_table(char **ptr)
 {
@@ -30,6 +30,7 @@ void	free_table(char **ptr)
 	i = 0;
 	while (ptr[i])
 		free(ptr[i++]);
+	free(ptr[i]);
 	free(ptr);
 }
 
@@ -45,7 +46,10 @@ void	child_process(t_data *data)
 	// 			return;
 	if (close(data->pipe[READ]) == -1
 		|| execve(data->path, data->arg, NULL) == -1)
+	{
+		perror("command not found:");
 		exit(EXIT_FAILURE);
+	}
 }
 
 int	execute_cmd(t_data *data)
@@ -64,7 +68,6 @@ int	execute_cmd(t_data *data)
 
 	if (data->pid != 0
 		&& wait(&data->status) == -1)
-			//|| !WIFEXITED(data->status)))
 		return (-1);
 	else if (data->pid == 0)
 		child_process(data);	
@@ -86,28 +89,25 @@ int	set_execve(t_data *data, int cmd)
 	}
 	data->arg = ft_split(data->av[cmd], ' ');
 	if (data->arg == NULL)
-		exit(EXIT_FAILURE);
-	if (set_quote(data) == -1)
 		return (-1);
+	// if (set_quote(data) == -1)
+	// 	return (-1);
 	data->path = ft_strjoin(data->path, data->arg[NAME]);
 	if (data->path == NULL)
 		return (-1);
 	if (cmd == CMD1)
 		data->fd_in = open(data->av[FILE1], O_RDONLY);
 	if (cmd == CMD1 && data->fd_in == -1)
-		if (close(data->fd_in) == -1)
 			return (-1);
 	return (1);
 }
 
 int	main(int ac, char **av)
-
 {
-	printf("%s\n", av[2]);
 	t_data	data;
 
 	if (ac != 5)
-		return (-1);
+		exit(EXIT_FAILURE);
 	if (!av[1] || !av[2] || !av[3] || !av[4]
 		|| *av[1] == 0 || *av[2] == 0 || *av[3] == 0 || *av[4] == 0)
 		return (-1);
@@ -132,8 +132,17 @@ int	main(int ac, char **av)
 	{
 		free_table(data.arg);
 		free(data.path);
+		if (data.fd_in > 0)
+			close(data.fd_in);
+		close(data.pipe[READ]);
+		close(data.fd_out);
 		if (!data.success)
-			return (-1);
+		{
+			if (WIFSIGNALED(data.status))
+				exit(WTERMSIG(data.status));
+			exit(0);
+		}
 	}
-	return (1);
+	if (WIFEXITED(data.status))
+		exit(EXIT_SUCCESS);
 }
